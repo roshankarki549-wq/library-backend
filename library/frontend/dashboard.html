@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Library Dashboard Test</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px;
+            width: 200px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .section {
+            margin-top: 30px;
+        }
+
+        img {
+            width: 60px;
+            height: 80px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Library Dashboard</h1>
+
+<button onclick="loadDashboard()">
+    Load Dashboard
+</button>
+
+<hr>
+
+<div class="card">
+    <h3>Total Books</h3>
+    <h2 id="totalBooks">0</h2>
+</div>
+
+<div class="card">
+    <h3>Total Members</h3>
+    <h2 id="totalMembers">0</h2>
+</div>
+
+<div class="card">
+    <h3>Books Issued</h3>
+    <h2 id="booksIssued">0</h2>
+</div>
+
+<div class="card">
+    <h3>Overdue Books</h3>
+    <h2 id="overdueBooks">0</h2>
+</div>
+
+<div class="section">
+
+    <h2>Recent Issues</h2>
+
+    <ul id="recentIssues"></ul>
+
+</div>
+
+<div class="section">
+
+    <h2>Popular Books</h2>
+
+    <div id="popularBooks"></div>
+
+    <h2>Notifications</h2>
+
+    <ul id="notifications"></ul>
+
+</div>
+
+<script src="dashboard.js"></script>
+
+</body>
+</html>
