@@ -170,6 +170,12 @@ class NotificationsView(APIView):
 
             })
             
+        # Sort latest activity first
+        notifications.sort(
+            key=lambda x: x.get('date', date.min),
+            reverse=True
+        )
+
         return Response(notifications)  
 
 class CategoryDistributionView(APIView):
