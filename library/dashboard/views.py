@@ -106,11 +106,11 @@ class NotificationsView(APIView):
          
         notifications = []
 
-        # 1. Recently Issued Books
+        # 1. Issued Books
 
         recent_issues = IssueBook.objects.filter(
             status='issued'
-        ).order_by('-id')[:5]
+        ).order_by('-id')
 
         for issue in recent_issues:
 
@@ -124,7 +124,7 @@ class NotificationsView(APIView):
         # 2. Returned Books
         returned_books = IssueBook.objects.filter(
                 status='returned'
-        ).order_by('-id')[:5]
+        ).order_by('-id')
 
         for issue in returned_books:
 
