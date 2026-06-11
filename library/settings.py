@@ -19,6 +19,10 @@ DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = ["localhost","127.0.0.1","library-backend-railway-production.up.railway.app"]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://library-backend-railway-production.up.railway.app/",
+]
+
 # ALLOWED_HOSTS = [
 #     "localhost",
 #     "127.0.0.1",
