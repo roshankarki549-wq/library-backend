@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from books.models import Book
+from library.library.books.models import Book
 from members.models import Member
 from django.contrib import admin
 from .models import Book

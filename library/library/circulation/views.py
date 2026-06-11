@@ -2,14 +2,14 @@ from datetime import date, timedelta
 from urllib import request
 
 # Allow Admin and Librarian users
-from accounts.permissions import IsAdminOrLibrarian
+from library.library.accounts.permissions import IsAdminOrLibrarian
 
 from rest_framework.views import APIView
 from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
 
-from books.models import Book
+from library.library.books.models import Book
 from members.models import Member
 
 from .models import IssueBook

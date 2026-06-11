@@ -1,6 +1,6 @@
 from rest_framework import generics, filters
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from accounts.permissions import IsAdmin
+from library.library.accounts.permissions import IsAdmin
 from .models import Book
 from .serializers import BookSerializer
 # from rest_framework.parsers import (MultiPartParser, FormParser)
