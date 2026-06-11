@@ -2,7 +2,7 @@ from django.db import models
 from datetime import date, timedelta
 
 # Import Book and Member models
-from library.library.books.models import Book
+from books.models import Book
 from members.models import Member
 
 class IssueBook(models.Model):

@@ -4,9 +4,9 @@ from rest_framework.response import Response
 
 # Models
 from django.db.models import Count
-from library.library.books.models import Book
+from books.models import Book
 from members.models import Member
-from library.library.circulation.models import IssueBook
+from circulation.models import IssueBook
 from datetime import date
 
 class DashboardStatsView(APIView):
