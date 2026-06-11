@@ -1,5 +1,5 @@
 #!/bin/bash
-cd/library
+cd/library.library
 
 python manage.py migrate
 python manage.py collectstatic --noinput
