@@ -52,3 +52,6 @@ class IssueBook(models.Model):
             self.due_date = self.issue_date + timedelta(days=14)
 
         super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ["id"] 
