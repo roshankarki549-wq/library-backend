@@ -2,23 +2,37 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from accounts.permissions import IsAdminOrLibrarian
+
 # Models
 from django.db.models import Count
 from books.models import Book
-from members.models import Member
+from accounts.models import User
+# from members.models import Member
 from circulation.models import IssueBook
 from datetime import date
 
 class DashboardStatsView(APIView):
+
+    permission_classes = [IsAdminOrLibrarian]
 
     def get(self, request):
 
         # Total books in library
         total_books = Book.objects.count()
 
-        # Total registered members
-        total_members = Member.objects.count()
+        # Total registered members(students, librarian, admin)
+        total_students = User.objects.filter(
+        role="student"
+        ).count()
 
+        total_librarians = User.objects.filter(
+            role="librarian"
+        ).count()
+
+        total_admins = User.objects.filter(
+            role="admin"
+        ).count()
         # Books currently issued
         books_issued = IssueBook.objects.filter(
             status='issued'
@@ -31,13 +45,16 @@ class DashboardStatsView(APIView):
         ).count()
 
         return Response({
-            "total_books": total_books,
-            "total_members": total_members,
+            "total_students": total_students,
+            "total_librarians": total_librarians,
+            "total_admins": total_admins,
             "books_issued": books_issued,
-            "overdue_books": overdue_books
+            "overdue_books": overdue_books,
         })
 
 class RecentIssuesView(APIView):
+
+    permission_classes = [IsAdminOrLibrarian]
 
     def get(self, request):
 
@@ -57,9 +74,9 @@ class RecentIssuesView(APIView):
                 if issue.book.cover_image else None,
 
                 "member": issue.member.full_name,
-                "member_photo": issue.member.photo.url
+                "member_photo": issue.member.profile_picture.url
 
-                if issue.member.photo else None,
+                if issue.member.profile_picture else None,
 
                 "issue_date": issue.issue_date,
                 "due_date": issue.due_date
@@ -69,6 +86,8 @@ class RecentIssuesView(APIView):
         return Response(data)
     
 class PopularBooksView(APIView):
+
+    permission_classes = [IsAdminOrLibrarian]
 
     def get(self, request):
 
@@ -101,6 +120,8 @@ class PopularBooksView(APIView):
         return Response(data)
     
 class NotificationsView(APIView):
+
+    permission_classes = [IsAdminOrLibrarian]
 
     def get(self, request):
          
@@ -180,6 +201,8 @@ class NotificationsView(APIView):
 
 class CategoryDistributionView(APIView):
 
+    permission_classes = [IsAdminOrLibrarian]
+
     def get(self, request):
 
         categories = Book.objects.values(
@@ -191,6 +214,8 @@ class CategoryDistributionView(APIView):
         return Response(categories)
     
 class IssueReturnChartView(APIView):
+
+    permission_classes = [IsAdminOrLibrarian]
 
     def get(self, request):
 
