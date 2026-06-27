@@ -1,27 +1,40 @@
 from rest_framework.permissions import BasePermission
 
 
-# Only users in the Admin group can access
 class IsAdmin(BasePermission):
 
     def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "admin"
+        )
 
-        print("Current User:", request.user)
-        print("Groups:", request.user.groups.all())
 
-        # Check if logged-in user belongs to Admin group
-        return request.user.groups.filter(
-            name='Admin'
-        ).exists()
+class IsLibrarian(BasePermission):
 
-from rest_framework.permissions import BasePermission
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "librarian"
+        )
 
-# Allow both Admin and Librarian users
+
+class IsStudent(BasePermission):
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == "student"
+        )
+
+
 class IsAdminOrLibrarian(BasePermission):
 
     def has_permission(self, request, view):
-
-        # Check if user belongs to either group
-        return request.user.groups.filter(
-            name__in=['Admin', 'Librarian']
-        ).exists()
+        return (
+            request.user.is_authenticated
+            and request.user.role in (
+                "admin",
+                "librarian"
+            )
+        )

@@ -1,14 +1,20 @@
 from django.urls import path
 
-from .views import IssueBookCreateView, OverdueBooksView, RecentTransactionsView, ReturnBookView,IssueBookListView, SendReminderView
+from .views import (BorrowRequestView, IssuedBooksView, MyBorrowHistoryView, OverdueBooksView, PendingBorrowRequestView, RecentTransactionsView, ReturnBookView, SendReminderView,
+ApproveBorrowRequestView, RejectBorrowRequestView)
 
 urlpatterns = [
     # Issue a book
-    path('issue/', IssueBookCreateView.as_view(), name='issue-book'),
-    path('issues/',IssueBookListView.as_view(),name='issue-list'),
+    path('borrow/',BorrowRequestView.as_view(),name='borrow-book'),
+    path("approve/<int:issue_id>/",ApproveBorrowRequestView.as_view(),name="approve-borrow",),
     path('return/<int:issue_id>/',ReturnBookView.as_view(),name='return-book'),
-    path('overdue-books/',OverdueBooksView.as_view(),name='overdue-books'),
+    path("reject/<int:issue_id>/",RejectBorrowRequestView.as_view(),name="reject-borrow",),
+    path("my-books/",MyBorrowHistoryView.as_view(),name="my-books",),
+    path("pending/",PendingBorrowRequestView.as_view(),name="pending-borrow-requests",),
+    path("issued/",IssuedBooksView.as_view(),name="issued-books",),
+    path('overdue/',OverdueBooksView.as_view(),name="overdue-books"),
     path('recent-transactions/',RecentTransactionsView.as_view(),name='recent-transactions'),
+    
     path('send-reminders/', SendReminderView.as_view()),
 
 ]

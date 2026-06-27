@@ -2,46 +2,43 @@ from datetime import date, timedelta
 from urllib import request
 
 # Allow Admin and Librarian users
-from accounts.permissions import IsAdminOrLibrarian
+from accounts.permissions import IsAdminOrLibrarian, IsStudent
 
-from rest_framework.views import APIView
+from rest_framework.views import APIView, View
 from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
 
 from books.models import Book
-from members.models import Member
+# from members.models import Member
 
 from .models import IssueBook
-from .serializers import IssueBookSerializer
+from .serializers import BorrowRequestSerializer, IssueBookSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from .reminders import send_overdue_reminders
 
 
-class IssueBookCreateView(generics.CreateAPIView):
+class BorrowRequestView(generics.CreateAPIView):
     
-    # Only Admin or Librarian can issue books
-    permission_classes = []
+    # Only logged-in users can borrow books
+    permission_classes = [IsAuthenticated, IsStudent]
 
     # Serializer used for validation and saving
-    serializer_class = IssueBookSerializer
+    serializer_class = BorrowRequestSerializer
 
     def create(self, request, *args, **kwargs):
 
         # Get book ID from request data
         book_id = request.data.get('book')
 
-        # Get member ID from request data
-        member_id = request.data.get('member')
-
         try:
             # Fetch book from database
             book = Book.objects.get(id=book_id)
 
         except Book.DoesNotExist:
-
             return Response(
                 {
                     "error": "Book not found"
@@ -49,15 +46,15 @@ class IssueBookCreateView(generics.CreateAPIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        try:
-            # Fetch member from database
-            member = Member.objects.get(id=member_id)
+        # try:
+        #     # Fetch member from database
+        #     member = Member.objects.get(id=member_id)
 
-        except Member.DoesNotExist:
-            return Response(
-                {"error": "Member not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        # except Member.DoesNotExist:
+        #     return Response(
+        #         {"error": "Member not found"},
+        #         status=status.HTTP_404_NOT_FOUND
+        #     )
 
         # # Check KYC status
         # if member.kyc_status != 'approved':
@@ -70,7 +67,6 @@ class IssueBookCreateView(generics.CreateAPIView):
 
         # Check if book is available
         if book.available_copies <= 0:
-
             return Response(
                 {
                     "error": "Book is not available"
@@ -78,6 +74,21 @@ class IssueBookCreateView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Check if this student already has this book in pending or issued status
+        existing_request = IssueBook.objects.filter(
+            member=request.user,
+            book=book,
+            status__in=["pending", "issued"]
+        ).exists()
+
+        if existing_request:
+            return Response(
+                {
+                    "error": "You already have a pending or issued request for this book."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Validate incoming request data
         serializer = self.get_serializer(
             data=request.data
@@ -88,72 +99,181 @@ class IssueBookCreateView(generics.CreateAPIView):
         )
 
         # Save IssueBook record
-        serializer.save()
-
-        # Reduce available copies by 1
-        book.available_copies -= 1
-
-        # Save updated book data
-        book.save()
+        serializer.save(member=request.user)
 
         return Response(
             {
-                "message": "Book issued successfully",
+                "message": "Borrow request submitted successfully",
                 "data": serializer.data
             },
             status=status.HTTP_201_CREATED
         )
     
-class ReturnBookView(APIView):
-    # Only Admin or Librarian can return books
-    permission_classes = []
+class ApproveBorrowRequestView(APIView):
+    # Approve a student's borrow request.
+    # Only Admins and Librarians can approve requests.
+
+    # Restrict access
+    permission_classes = [IsAdminOrLibrarian]
 
     def post(self, request, issue_id):
 
         try:
+            # Find the borrow request
             issue = IssueBook.objects.get(id=issue_id)
 
         except IssueBook.DoesNotExist:
 
             return Response(
-                {"error": "Issue record not found"},
+                {
+                    "error": "Borrow request not found."
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Prevent returning twice
-        if issue.status == 'returned':
+        # Prevent approving the same request twice
+        if issue.status != "pending":
 
             return Response(
-                {"error": "Book already returned"},
+                {
+                    "error": "This request has already been processed."
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get today's date
+        # Check whether copies are still available
+        if issue.book.available_copies <= 0:
+
+            return Response(
+                {
+                    "error": "No copies available."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Approve the request
+        issue.status = "issued"
+
+        # Book issued today
+        issue.issue_date = date.today()
+
+        # Student must return within 14 days
+        issue.due_date = date.today() + timedelta(days=14)
+
+        issue.save()
+
+        # Reduce available copies
+        book = issue.book
+        book.available_copies -= 1
+        book.save()
+
+        return Response(
+            {
+                "message": "Borrow request approved successfully."
+            },
+            status=status.HTTP_200_OK
+        )
+    
+class RejectBorrowRequestView(APIView):
+    """
+    Reject a borrow request.
+
+    Only Admins and Librarians can reject requests.
+    """
+
+    # Only Admin and Librarian are allowed
+    permission_classes = [IsAdminOrLibrarian]
+
+    def post(self, request, issue_id):
+
+        try:
+            # Find the borrow request
+            issue = IssueBook.objects.get(id=issue_id)
+
+        except IssueBook.DoesNotExist:
+
+            return Response(
+                {
+                    "error": "Borrow request not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Request has already been processed
+        if issue.status != "pending":
+
+            return Response(
+                {
+                    "error": "This request has already been processed."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Reject the request
+        issue.status = "rejected"
+
+        # Save changes
+        issue.save()
+
+        return Response(
+            {
+                "message": "Borrow request rejected successfully."
+            },
+            status=status.HTTP_200_OK
+        )
+    
+class ReturnBookView(APIView):
+
+    """
+    Return an issued book.
+    Only Admins and Librarians can return books.
+    """
+    permission_classes = [IsAdminOrLibrarian]
+
+    def post(self, request, issue_id):
+
+        try:
+            # Find the issue record
+            issue = IssueBook.objects.get(id=issue_id)
+
+        except IssueBook.DoesNotExist:
+            return Response(
+                {
+                    "error": "Issue record not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Only issued books can be returned
+        if issue.status != "issued":
+            return Response(
+                {
+                    "error": "Only issued books can be returned."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Today's date
         today = date.today()
 
-        # Mark book as returned
-        issue.status = 'returned'
-        
-        # Save actual return date
+        # Update issue record
+        issue.status = "returned"
         issue.return_date = today
 
-        # Default fine amount
-        fine_amount = 0
+        # Fine Calculation
+        fine = 0
 
-        # Check if the book is returned after due date
+        # Check if returned after due date
         if today > issue.due_date:
 
-            # Calculate number of late days
+            # Number of late days
             overdue_days = (today - issue.due_date).days
 
-            # Fine rate per day (Rs. 5)
-            fine_per_day = 5
+            # Fine = Rs. 5 per day
+            fine = overdue_days * 5
 
-            # Calculate total fine
-            fine_amount = overdue_days * fine_per_day
+        issue.fine_amount = fine
 
-        # Save fine amount
-        issue.fine_amount = fine_amount
         issue.save()
 
         # Increase available copies
@@ -162,49 +282,78 @@ class ReturnBookView(APIView):
         book.save()
 
         return Response(
-            {"message": "Book returned successfully",
-            "fine_amount": issue.fine_amount
+            {
+                "message": "Book returned successfully.",
+                "fine_amount": fine
             },
             status=status.HTTP_200_OK
         )
-    
 
-# New view to list all issued books
-class IssueBookListView(generics.ListAPIView):
+class MyBorrowHistoryView(generics.ListAPIView):
 
-    queryset = IssueBook.objects.all()
+    # Student can view only their own borrow history.
     serializer_class = IssueBookSerializer
+
+    permission_classes = [IsStudent]
+
+    def get_queryset(self):
+
+        return IssueBook.objects.filter(
+            member=self.request.user
+        ).order_by("-request_date")
+    
+class PendingBorrowRequestView(generics.ListAPIView):
+    #View all pending borrow requests.
+
+    serializer_class = IssueBookSerializer
+
+    permission_classes = [IsAdminOrLibrarian]
+
+    def get_queryset(self):
+
+        return IssueBook.objects.filter(
+            status="pending"
+        ).order_by("request_date")
+    
+class IssuedBooksView(generics.ListAPIView):
+    # View all issued books.
+
+    serializer_class = IssueBookSerializer
+
+    permission_classes = [IsAdminOrLibrarian]
+
+    def get_queryset(self):
+
+        return IssueBook.objects.filter(
+            status="issued"
+        ).order_by("-issue_date")
 
 class OverdueBooksView(generics.ListAPIView):
 
-    # Convert data to JSON
+    # View all overdue books.
     serializer_class = IssueBookSerializer
 
-    def get_queryset(self):
+    permission_classes = [IsAdminOrLibrarian]
 
-        # Return books that:
-        # 1. Are still issued
-        # 2. Due date has already passed
+    def get_queryset(self):
 
         return IssueBook.objects.filter(
-            status='issued',
+            status="issued",
             due_date__lt=date.today()
-        )
+        ).order_by("due_date")
     
 # Show recently issued books
-
 class RecentTransactionsView(generics.ListAPIView):
 
-    # Convert records to JSON
+    # Show latest circulation activities.
+
     serializer_class = IssueBookSerializer
+    permission_classes = [IsAdminOrLibrarian]
 
     def get_queryset(self):
 
-        # Order by latest issue date first
-        # [:10] means only 10 records
-
         return IssueBook.objects.order_by(
-            '-issue_date'
+            "-request_date"
         )[:10]
     
 class SendReminderView(APIView):

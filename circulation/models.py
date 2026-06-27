@@ -1,43 +1,64 @@
 from django.db import models
-from datetime import date, timedelta
-
-# Import Book and Member models
 from books.models import Book
-from members.models import Member
+from accounts.models import User
+
 
 class IssueBook(models.Model):
-    # Choices for book status
+
+    # Possible states of a borrow request
     STATUS_CHOICES = (
-        ('issued', 'Issued'),
-        ('returned', 'Returned')
+        ('pending', 'Pending'),    # Student requested book
+        ('issued', 'Issued'),      # Librarian approved request
+        ('returned', 'Returned'),  # Book returned
+        ('rejected', 'Rejected'),  # Request rejected
     )
 
-    # Which book is being issued
-    book = models.ForeignKey(Book,on_delete=models.CASCADE)
+    # Book being requested/issued
+    book = models.ForeignKey(
+        Book,
+        on_delete=models.CASCADE
+    )
 
-    # Which member borrowed the book
-    member = models.ForeignKey(Member,on_delete=models.CASCADE)
+    # Student who requested the book
+    # We use User because students are stored in accounts app
+    member = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
 
-    # Date when book is issued
-    issue_date = models.DateField(default=date.today)
+    # Date when student submitted borrow request
+    request_date = models.DateField(
+        auto_now_add=True
+    )
+
+    # Date when librarian approved and issued the book
+    # Empty while request is pending
+    issue_date = models.DateField(
+        null=True,
+        blank=True
+    )
 
     # Expected return date
-    due_date = models.DateField()
+    # Set when book is issued
+    due_date = models.DateField(
+        null=True,
+        blank=True
+    )
 
-    # Actual return date
+    # Actual date when student returned the book
     return_date = models.DateField(
         null=True,
         blank=True
     )
 
-    # Current status of book issue
+    # Current request status
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='issued'
+        default='pending'
     )
 
-     # Fine amount in rupees
+    # Fine charged for late return
     fine_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -45,13 +66,8 @@ class IssueBook(models.Model):
     )
 
     def __str__(self):
-        return f"{self.member.full_name} - {self.book.title}"
-    
-    def save(self, *args, **kwargs):
-        if not self.due_date:
-            self.due_date = self.issue_date + timedelta(days=14)
-
-        super().save(*args, **kwargs)
+        return f"{self.member.username} - {self.book.title}"
 
     class Meta:
-        ordering = ["id"] 
+        # Always show oldest records first
+        ordering = ['id']
