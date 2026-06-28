@@ -8,7 +8,6 @@ from accounts.permissions import IsAdminOrLibrarian
 from django.db.models import Count
 from books.models import Book
 from accounts.models import User
-# from members.models import Member
 from circulation.models import IssueBook
 from datetime import date
 

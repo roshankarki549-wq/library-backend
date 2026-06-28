@@ -10,7 +10,6 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from books.models import Book
-# from members.models import Member
 
 from .models import IssueBook
 from .serializers import BorrowRequestSerializer, IssueBookSerializer

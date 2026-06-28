@@ -2,7 +2,6 @@ from django.db import models
 from books.models import Book
 from accounts.models import User
 
-
 class IssueBook(models.Model):
 
     # Possible states of a borrow request

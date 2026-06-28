@@ -40,7 +40,10 @@ class User(AbstractUser):
 
     @property
     def full_name(self):
-        return f"{self.first_name} {self.last_name}"
+        if self.first_name or self.last_name:
+            return f"{self.first_name} {self.last_name}".strip()
+
+        return self.username
 
     def __str__(self):
         return self.username
