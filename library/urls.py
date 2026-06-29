@@ -14,7 +14,7 @@ urlpatterns = [
     path('api/circulation/', include('circulation.urls')),
     path('api/dashboard/', include('dashboard.urls')),
      # Login
-    path("login/",LoginView.as_view(),name="login"),
+    path("api/login/",LoginView.as_view(),name="login"),
     # path('api/login/',TokenObtainPairView.as_view(),name='token_obtain_pair'),
     # Refresh token
     path('api/token/refresh/',TokenRefreshView.as_view(),name='token_refresh'),
