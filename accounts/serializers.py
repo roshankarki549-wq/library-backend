@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.contrib.auth import authenticate
 from .models import User, StudentProfile
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -83,3 +84,42 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'id',
         )
+
+class LoginSerializer(serializers.Serializer):
+
+    # User enters email
+    email = serializers.EmailField()
+
+    # User enters password
+    password = serializers.CharField(
+        write_only=True
+    )
+
+    def validate(self, attrs):
+
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        # Find user by email
+        try:
+            user = User.objects.get(email=email)
+
+        except User.DoesNotExist:
+            raise serializers.ValidationError(
+                "Invalid email or password."
+            )
+
+        # Authenticate using username internally
+        user = authenticate(
+            username=user.username,
+            password=password
+        )
+
+        if user is None:
+            raise serializers.ValidationError(
+                "Invalid email or password."
+            )
+
+        attrs["user"] = user
+
+        return attrs

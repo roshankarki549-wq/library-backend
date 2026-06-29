@@ -3,6 +3,7 @@ from django.conf.urls.static import static
 
 from django.contrib import admin
 from django.urls import path, include
+from accounts.views import LoginView
 from rest_framework_simplejwt.views import (TokenObtainPairView,TokenRefreshView)
 
 
@@ -13,7 +14,8 @@ urlpatterns = [
     path('api/circulation/', include('circulation.urls')),
     path('api/dashboard/', include('dashboard.urls')),
      # Login
-    path('api/login/',TokenObtainPairView.as_view(),name='token_obtain_pair'),
+    path("login/",LoginView.as_view(),name="login"),
+    # path('api/login/',TokenObtainPairView.as_view(),name='token_obtain_pair'),
     # Refresh token
     path('api/token/refresh/',TokenRefreshView.as_view(),name='token_refresh'),
 ]
