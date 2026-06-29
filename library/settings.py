@@ -50,6 +50,10 @@ INSTALLED_APPS = [
     'accounts',
 ]
 
+GOOGLE_CLIENT_ID = (
+    "274837741563-556t85mhp13fms180r127o40htfmco2g.apps.googleusercontent.com"
+)
+
 AUTH_USER_MODEL = 'accounts.User'
 
 REST_FRAMEWORK = {
