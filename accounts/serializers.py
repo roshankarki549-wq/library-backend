@@ -95,15 +95,11 @@ class LoginSerializer(serializers.Serializer):
         write_only=True
     )
 
-    role = serializers.ChoiceField(
-        choices=User.ROLE_CHOICES
-    )
 
     def validate(self, attrs):
 
         email = attrs["email"]
         password = attrs["password"]
-        role = attrs["role"]
 
         # Find user by email
         try:
@@ -123,12 +119,6 @@ class LoginSerializer(serializers.Serializer):
         if user is None:
             raise serializers.ValidationError(
                 "Invalid email or password."
-            )
-        
-        # Check role
-        if user.role != role:
-            raise serializers.ValidationError(
-                "Invalid role."
             )
 
         attrs["user"] = user
