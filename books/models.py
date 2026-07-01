@@ -1,4 +1,8 @@
 from django.db import models
+import qrcode
+from io import BytesIO
+
+from django.core.files import File
 
 class Book(models.Model):
     title = models.CharField(max_length=255)
@@ -9,6 +13,12 @@ class Book(models.Model):
     isbn = models.CharField(
         max_length=20,
         unique=True
+    )
+
+    qr_code = models.ImageField(
+        upload_to='book_qr/',
+        blank=True,
+        null=True
     )
 
     total_copies = models.IntegerField()
@@ -25,3 +35,22 @@ class Book(models.Model):
     
     class Meta:
         ordering = ["id"] 
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if not self.qr_code:
+            qr_data = f"Book ID: {self.id}\nTitle: {self.title}"
+
+            qr_img = qrcode.make(qr_data)
+
+            buffer = BytesIO()
+            qr_img.save(buffer, format="PNG")
+
+            self.qr_code.save(
+                f"book_{self.id}.png",
+                File(buffer),
+                save=False
+            )
+
+            super().save(update_fields=["qr_code"])
