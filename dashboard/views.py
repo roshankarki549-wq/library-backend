@@ -2,7 +2,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdminOrLibrarian
+from rest_framework.permissions import IsAuthenticated
+from accounts.permissions import IsAdminOrLibrarian, IsStudent
 
 # Models
 from django.db.models import Count
@@ -120,7 +121,7 @@ class PopularBooksView(APIView):
     
 class NotificationsView(APIView):
 
-    permission_classes = [IsAdminOrLibrarian]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
          
