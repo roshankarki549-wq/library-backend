@@ -11,8 +11,8 @@ from rest_framework.response import Response
 
 from books.models import Book
 
-from .models import IssueBook
-from .serializers import BorrowRequestSerializer, IssueBookSerializer
+from .models import IssueBook, User
+from .serializers import BorrowRequestSerializer, IssueBookSerializer, DirectIssueSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -219,6 +219,92 @@ class RejectBorrowRequestView(APIView):
                 "message": "Borrow request rejected successfully."
             },
             status=status.HTTP_200_OK
+        )
+    
+class DirectIssueView(generics.CreateAPIView):
+
+    # Only admin/librarian can directly issue books
+    permission_classes = [IsAdminOrLibrarian]
+
+    serializer_class = DirectIssueSerializer
+
+    def create(self, request, *args, **kwargs):
+
+        book_id = request.data.get("book")
+        member_id = request.data.get("member")
+
+        # Check book
+        try:
+            book = Book.objects.get(id=book_id)
+
+        except Book.DoesNotExist:
+            return Response(
+                {
+                    "error": "Book not found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check member
+        try:
+            member = User.objects.get(id=member_id)
+
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "error": "Member not found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Only students can borrow books
+        if member.role != "student":
+            return Response(
+                {
+                    "error": "Books can only be issued to students."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Book availability
+        if book.available_copies <= 0:
+            return Response(
+                {
+                    "error": "Book is not available."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Prevent duplicate issue
+        if IssueBook.objects.filter(
+            member=member,
+            book=book,
+            status="issued"
+        ).exists():
+            return Response(
+                {
+                    "error": "Student already has this book."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create issue record
+        issue = IssueBook.objects.create(
+            book=book,
+            member=member,
+            status="issued"
+        )
+
+        # Reduce available copies
+        book.available_copies -= 1
+        book.save()
+
+        return Response(
+            {
+                "message": "Book issued successfully.",
+                "data": IssueBookSerializer(issue).data
+            },
+            status=status.HTTP_201_CREATED
         )
     
 class ReturnBookView(APIView):

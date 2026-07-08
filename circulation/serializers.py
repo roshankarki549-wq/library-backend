@@ -45,3 +45,14 @@ class IssueBookSerializer(serializers.ModelSerializer):
     class Meta:
         model = IssueBook
         fields = "__all__"
+
+# Serializer for direct issue by librarian/admin
+class DirectIssueSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = IssueBook
+
+        fields = [
+            "book",
+            "member"
+        ]
